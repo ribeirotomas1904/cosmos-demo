@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "@cosmjs/stargate": "^0.32.3",
+    "@cosmos-kit/core": "^2.13.1",
     "@cosmos-kit/keplr": "^2.12.0",
-    "@cosmos-kit/react": "^2.17.0",
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
     "chain-registry": "^1.63.9",
     "react": "^18.3.1",

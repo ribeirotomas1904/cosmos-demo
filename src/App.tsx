@@ -1,42 +1,14 @@
-import { useState } from 'react';
 
 import { chains, assets } from 'chain-registry';
 
-import { ChainProvider, useChain } from '@cosmos-kit/react';
+import { Logger, WalletManager } from '@cosmos-kit/core';
 import { wallets } from '@cosmos-kit/keplr-extension';
 
-import { SigningStargateClient } from "@cosmjs/stargate"
-import { Coin } from "cosmjs-types/cosmos/base/v1beta1/coin";
-
-// Import this in your top-level route/layout
-import "@interchain-ui/react/styles";
+import { SigningStargateClient, } from "@cosmjs/stargate"
 
 const RPC_ADDRESS = "wss://rpc.sentry-01.theta-testnet.polypore.xyz"
 
 function Component() {
-  const [recipientAddress, setRecipientAddress] = useState("");
-  const [balances, setBalances] = useState<readonly Coin[] | null>(null);
-
-  const chainContext = useChain("cosmoshubtestnet");
-
-  const updateBalances = async () => {
-    const client = await SigningStargateClient.connectWithSigner(RPC_ADDRESS, chainContext.getOfflineSignerDirect());
-
-    const balances = await client.getAllBalances(chainContext.address!);
-    setBalances(balances);
-  }
-
-  const getBalances = () => {
-    if (!chainContext.isWalletConnected) {
-      return <p>connect your wallet to see your balances</p>
-    }
-
-    if (balances === null) {
-      return <p>click on "update balances" to get your balance</p>
-    }
-
-    return <p>current balances: {JSON.stringify(balances)}</p>;
-  }
 
   return (
     <>
@@ -46,56 +18,43 @@ function Component() {
 
       <button
         onClick={async () => {
-          chainContext.connect()
-        }}>
-        connect
-      </button>
+          const walletManager = new WalletManager(chains, wallets, new Logger(), "connect_only", undefined, undefined, assets);
 
-      {getBalances()}
+          const walletRepo = walletManager.getWalletRepo("cosmoshubtestnet");
 
-      <button
-        onClick={updateBalances}
-      >
-        update balances
-      </button>
 
-      <br />
-      <br />
-      <br />
+          await walletRepo.connect(walletRepo.wallets[0].walletName, true);
 
-      <label>
-        Recipient address
-        {' '}
-        <input value={recipientAddress} onChange={e => setRecipientAddress(e.target.value)} />
-      </label>
+          console.log(walletRepo.current);
 
-      <button
-        onClick={async () => {
+          const offlineSigner = await walletRepo.wallets[0].getSigningStargateClient();
 
-          if (recipientAddress === "") {
-            return;
-          }
+          offlineSigner.getChainId()
 
-          const client = await SigningStargateClient.connectWithSigner(
-            RPC_ADDRESS,
-            chainContext.getOfflineSignerDirect(),
-          );
-
-          const result = await client.sendTokens(
-            chainContext.address!,
-            recipientAddress,
+          console.log(await offlineSigner.sendTokens(
+            "cosmos1qkgwhmya6ftv4y99xac3ldxh8jd9a49xyyf4ff",
+            "cosmos15aptdqmm7ddgtcrjvc5hs988rlrkze40l4q0he",
             [{ denom: "uatom", amount: "1" }],
             {
               amount: [{ denom: "uatom", amount: "500" }],
               gas: "100000",
             }
-          )
+          ))
 
-          console.log(result);
+          // const client = await SigningStargateClient.connectWithSigner(RPC_ADDRESS, offlineSigner!);
 
+          // console.log(await client.sendTokens(
+          // "cosmos1qkgwhmya6ftv4y99xac3ldxh8jd9a49xyyf4ff",
+          // "cosmos15aptdqmm7ddgtcrjvc5hs988rlrkze40l4q0he",
+          // [{ denom: "uatom", amount: "1" }],
+          // {
+          //   amount: [{ denom: "uatom", amount: "500" }],
+          //   gas: "100000",
+          // }
+          // ))
         }}>
-        send
-      </button >
+        connect
+      </button>
     </>
   );
 }
@@ -103,13 +62,7 @@ function Component() {
 
 function App() {
   return (
-    <ChainProvider
-      chains={chains}
-      assetLists={assets}
-      wallets={wallets}
-    >
-      <Component />
-    </ChainProvider >
+    <Component />
   );
 }
 
